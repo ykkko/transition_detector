@@ -1,0 +1,49 @@
+from typing import List, Tuple
+
+import numpy as np
+
+
+def remove_short_ones(seq: np.ndarray, minimal: int) -> np.ndarray:
+    """
+    If group of ones is interrupted by a group of zeros with length < `minimal`, this group fills with ones.
+    :param seq: input sequence
+    :param minimal: minimal possible length of zeros group
+    :return: processed sequence
+    """
+    if minimal % 2 == 0:
+        seq = seq[1:]
+
+    kernel = np.ones(minimal)
+    seq = (np.convolve(seq, kernel, mode='same') == 0).astype(int)
+    seq = (np.convolve(seq, kernel, mode='same') == 0).astype(int)
+
+    if minimal % 2 == 0:
+        seq = np.insert(seq, len(seq), seq[-1])
+    return seq
+
+
+def split_bins(conditional_array: np.ndarray) -> List[Tuple[int, int]]:
+    """
+    Returns list of start and end indices of groups of ones in `conditional array`
+
+    Example:
+    conditional_array: [0, 0, 1, 1, 1, 0, 1, 0, 0]
+    split_bins(conditional_array): [(2, 5), (6, 7)]
+
+    :param conditional_array: array with values 0 or 1
+    :return: list of start and end indices of groups of ones in `conditional array`
+    """
+    ids = np.argwhere(conditional_array).flatten()
+    if len(ids) == 0:
+        return []
+
+    d = np.diff(ids)
+    gap_ids = np.argwhere(d > 1).flatten()
+    starts = [ids[0]]
+    ends = []
+    for idx in gap_ids:
+        ends.append(ids[idx] + 1)
+        starts.append(ids[idx + 1])
+    ends.append(ids[-1] + 1)
+    clips = list(zip(starts, ends))
+    return clips
