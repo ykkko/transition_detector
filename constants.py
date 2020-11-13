@@ -1,3 +1,4 @@
+DISABLE_TQDM = False
 
 RESIZED_FRAME_HEIGHT = 360
 RESIZED_FRAME_WIDTH = 640
@@ -20,14 +21,6 @@ MINIMUM_BRIGHTNESS_OF_CROP = 5  # minimum brightness of crop to remove black seq
 MINIMUM_LENGTH_OF_SCENE = 7  # minimum distance (in frames) between two cuts
 MINIMUM_GAP_BETWEEN_FADES = 7  # minimum distance (in frames) between two fades
 MINIMUM_LENGTH_OF_FADE = 5  # minimum duration (in frames) of fadein or fadeout
-
-RESULT_DICT_KEY_NAME_CUT_SEQUENCE = 'cut_sequence'
-RESULT_DICT_KEY_NAME_FADEIN_SEQUENCE = 'fadein_sequence'
-RESULT_DICT_KEY_NAME_FADEOUT_SEQUENCE = 'fadeout_sequence'
-RESULT_DICT_KEY_NAME_CUT_FRAMES = 'cut_frames'
-RESULT_DICT_KEY_NAME_FADEIN_FRAMES = 'fadein_frames'
-RESULT_DICT_KEY_NAME_FADEOUT_FRAMES = 'fadeout_frames'
-
 
 CROP_HEIGHT = RESIZED_FRAME_HEIGHT // CROP_DOWNSCALE
 CROP_WIDTH = RESIZED_FRAME_WIDTH // CROP_DOWNSCALE

@@ -5,7 +5,8 @@ import numpy as np
 
 def remove_short_ones(seq: np.ndarray, minimal: int) -> np.ndarray:
     """
-    If group of ones is interrupted by a group of zeros with length < `minimal`, this group fills with ones.
+    If group of ones is interrupted by a group of zeros with length < `minimal`, this group is filled with ones.
+
     :param seq: input sequence
     :param minimal: minimal possible length of zeros group
     :return: processed sequence
@@ -47,3 +48,17 @@ def split_bins(conditional_array: np.ndarray) -> List[Tuple[int, int]]:
     ends.append(ids[-1] + 1)
     clips = list(zip(starts, ends))
     return clips
+
+
+def value_in_interval(value: int, intervals: List[Tuple[int, int]]) -> bool:
+    """
+    Check if `value` is in one of `intervals`.
+
+    :param value: just value to check if it is in interval
+    :param intervals: list of intervals (tuples), 1st element in tuple is start and 2nd is the end of interval
+    :return: True if value is in one of intervals else False
+    """
+    for start, end in intervals:
+        if start <= value < end:
+            return True
+    return False
