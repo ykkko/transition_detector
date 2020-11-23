@@ -2,7 +2,7 @@
 
 #### Video-level interface (when you just need to find transitions in the video)
 
-The `transition_detector.py` module finds transitions such as cut, fadein and fadeout in a video.
+The `transition_detector/transition_detector.py` module finds transitions such as cut, fadein and fadeout in a video.
 To call it use the next script:
 ```python
 from transition_detector import TransitionDetector
@@ -58,10 +58,9 @@ cut_frames, fadein_frames, fadeout_frames = td.get_transitions(frames_values)
 
 ---
 ### Visualization
-Call function `visualize` from `visualize.py` to see results or write them to video file:
+Call function `visualize` from `transition_detector/visualize.py` to see results or write them to video file:
 ```python
-from transition_detector import TransitionDetector
-from visualize import visualize
+from transition_detector import TransitionDetector, visualize
 
 video_path = 'path/to/video'
 cut_frames, fadein_frames, fadeout_frames, frames_crops_mean_values = TransitionDetector().run(video_path)

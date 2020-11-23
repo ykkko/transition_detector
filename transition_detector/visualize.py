@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from constants import DISABLE_TQDM, CROP_ROWS, CROP_COLUMNS, CROP_DOWNSCALE, THR_DIFFERENCE_CROP_CUT
-from utils import value_in_interval
+from .constants import DISABLE_TQDM, CROP_ROWS, CROP_COLUMNS, CROP_DOWNSCALE, THR_DIFFERENCE_CROP_CUT
+from .utils import value_in_interval
 
 
 def add_text(frame: np.ndarray, text: str, coord: Tuple[int, int], size: float,
