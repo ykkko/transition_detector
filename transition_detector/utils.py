@@ -3,22 +3,22 @@ from typing import List, Tuple
 import numpy as np
 
 
-def remove_short_ones(seq: np.ndarray, minimal: int) -> np.ndarray:
+def remove_short_ones(seq: np.ndarray, minimum_zeros_length: int) -> np.ndarray:
     """
     If group of ones is interrupted by a group of zeros with length < `minimal`, this group is filled with ones.
 
     :param seq: input sequence
-    :param minimal: minimal possible length of zeros group
+    :param minimum_zeros_length: minimal possible length of zeros group
     :return: processed sequence
     """
-    if minimal % 2 == 0:
+    if minimum_zeros_length % 2 == 0:
         seq = seq[1:]
 
-    kernel = np.ones(minimal)
+    kernel = np.ones(minimum_zeros_length)
     seq = (np.convolve(seq, kernel, mode='same') == 0).astype(int)
     seq = (np.convolve(seq, kernel, mode='same') == 0).astype(int)
 
-    if minimal % 2 == 0:
+    if minimum_zeros_length % 2 == 0:
         seq = np.insert(seq, len(seq), seq[-1])
     return seq
 

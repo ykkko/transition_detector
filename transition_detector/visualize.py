@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
+from .transition_detector import TransitionDetector
 from .constants import DISABLE_TQDM, CROP_ROWS, CROP_COLUMNS, CROP_DOWNSCALE, THR_DIFFERENCE_CROP_CUT
 from .utils import value_in_interval
 
@@ -44,8 +45,8 @@ def add_detailed_info(frame: np.ndarray, prev_frame_crops_vals: np.ndarray,
     diff = abs(prev_frame_crops_vals - curr_frame_crops_vals)
     pair_min = np.min([prev_frame_crops_vals, curr_frame_crops_vals], axis=0) * THR_DIFFERENCE_CROP_CUT
     changed_crops_num = np.greater(diff, pair_min)
-    for r in range(CROP_ROWS):
-        for c in range(CROP_COLUMNS):
+    for r in range(len(crop_dots_y0)):
+        for c in range(len(crop_dots_x0)):
             x0, y0, x1, y1 = crop_dots_x0[c], crop_dots_y0[r], crop_dots_x1[c], crop_dots_y1[r]
             cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 50, 170) if is_cut else (170, 50, 0), 1)
             crop_value = str(round(curr_frame_crops_vals[r][c]))
@@ -58,7 +59,8 @@ def add_detailed_info(frame: np.ndarray, prev_frame_crops_vals: np.ndarray,
 def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple[int, int]],
               fadeout_frames: List[Tuple[int, int]], frames_crops_mean_values: Optional[np.ndarray] = None,
               video_slice: Optional[Tuple[int, int]] = None,
-              output_video_path: Optional[str] = None, imshow: bool = False):
+              output_video_path: Optional[str] = None, imshow: bool = False,
+              transition_detector: Optional[TransitionDetector] = None, disable_tqdm: bool = DISABLE_TQDM):
     """
     Shows frames or saves video with information about transitions on frames. If frames_crops_mean_values
     is not None, frames will be contained detailed information about all crops of frame.
@@ -73,9 +75,16 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
     :param video_slice: tuple with start and end IDs for visualize a specific piece of video
     :param output_video_path: path to video with information on frames, if None, then video will not be created
     :param imshow: call cv2.imshow if True
+    :param transition_detector: if you passed custom attributes when initializing the TransitionDetector then pass an
+                                instance for proper visualization
+    :param disable_tqdm: if True, tqdm will not show progress
     """
     if output_video_path is None and not imshow:
         raise AttributeError('If output_video_path is None and imshow is False, then this function will do nothing.')
+
+    crop_rows = transition_detector.crop_rows if transition_detector is not None else CROP_ROWS
+    crop_columns = transition_detector.crop_columns if transition_detector is not None else CROP_COLUMNS
+    crop_downscale = transition_detector.crop_downscale if transition_detector is not None else CROP_DOWNSCALE
 
     cap = cv2.VideoCapture(video_path)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -86,12 +95,12 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
         fps = cap.get(cv2.CAP_PROP_FPS)
         out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
     if frames_crops_mean_values is not None:
-        crop_height = height // CROP_DOWNSCALE
-        crop_width = width // CROP_DOWNSCALE
+        crop_height = height // crop_downscale
+        crop_width = width // crop_downscale
         _h_pad = height - crop_height
         _w_pad = width - crop_width
-        crop_dots_y0 = [int(_h_pad / (CROP_ROWS - 1) * i) for i in range(CROP_ROWS)]
-        crop_dots_x0 = [int(_w_pad / (CROP_COLUMNS - 1) * i) for i in range(CROP_COLUMNS)]
+        crop_dots_y0 = [int(_h_pad / (crop_rows - 1) * i) for i in range(crop_rows)]
+        crop_dots_x0 = [int(_w_pad / (crop_columns - 1) * i) for i in range(crop_columns)]
         crop_dots_y1 = [y0 + crop_height for y0 in crop_dots_y0]
         crop_dots_x1 = [x0 + crop_width for x0 in crop_dots_x0]
 
@@ -101,7 +110,7 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
 
     scene = 1
     prev_frame_crops_vals = None
-    for i in tqdm(range(end_frame - start_frame), f'Read frames: {start_frame}-{end_frame}', disable=DISABLE_TQDM):
+    for i in tqdm(range(end_frame - start_frame), f'Read frames: {start_frame}-{end_frame}', disable=disable_tqdm):
         ret, frame = cap.read()
         if ret:
             if frames_crops_mean_values is not None:
