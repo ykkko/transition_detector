@@ -297,9 +297,9 @@ class TransitionDetector:
         :param cut_frames: np.ndarray with frame indexes where cut is
         :param fadein_frames: list of tuples, 1st element in the tuple is the start of fading, 2nd is the end of fading
         :param fadeout_frames: same as `fadein_frames`
-        :param frames_crops_mean_values: sequence with shape (frame_num, CROP_ROWS, CROP_COLUMNS), each element of sequence
-                                         is np.ndarray with crop's mean values. It's used for visualize values of each crop.
-                                         If None, then frames will not be contained detailed information
+        :param frames_crops_mean_values: sequence with shape (frame_num, CROP_ROWS, CROP_COLUMNS), each element of
+                                         sequence is np.ndarray with crop's mean values. It's used for visualize values
+                                         of each crop. If None, then frames will not be contained detailed information
         :param video_slice: tuple with start and end IDs for visualize a specific piece of video
         :param output_video_path: path to video with information on frames, if None, then video will not be created
         :param imshow: call cv2.imshow if True
