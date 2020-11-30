@@ -4,56 +4,45 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from .utils import remove_short_ones, split_bins
-from .constants import (
-    DISABLE_TQDM, RESIZED_FRAME_HEIGHT, RESIZED_FRAME_WIDTH, CROP_ROWS, CROP_COLUMNS, CROP_DOWNSCALE,
-    THR_DIFFERENCE_FRAME_FADE, THR_SHARE_OF_CHANGED_CROPS_CUT, THR_DIFFERENCE_CROP_CUT,
-    MINIMUM_LENGTH_OF_SCENE, MINIMUM_GAP_BETWEEN_FADES, MINIMUM_LENGTH_OF_FADE, MINIMUM_BRIGHTNESS_OF_CROP,
-)
+from .utils import remove_short_ones, split_bins, get_changed_crops
+from .visualize import visualize
 
 
 class TransitionDetector:
 
-    def __init__(self, resize_frame: Tuple[int, int] = (RESIZED_FRAME_HEIGHT, RESIZED_FRAME_WIDTH),
-                 crop_rows: int = CROP_ROWS, crop_columns: int = CROP_COLUMNS, crop_downscale: int = CROP_DOWNSCALE,
-                 thr_share_of_changed_crops_cut: float = THR_SHARE_OF_CHANGED_CROPS_CUT,
-                 thr_difference_crop_cut: float = THR_DIFFERENCE_CROP_CUT,
-                 thr_difference_frame_fade: float = THR_DIFFERENCE_FRAME_FADE,
-                 minimum_length_of_scene: int = MINIMUM_LENGTH_OF_SCENE,
-                 minimum_gap_between_fades: int = MINIMUM_GAP_BETWEEN_FADES,
-                 minimum_length_of_fade: int = MINIMUM_LENGTH_OF_FADE,
-                 minimum_brightness_of_crop: float = MINIMUM_BRIGHTNESS_OF_CROP,
-                 disable_tqdm: bool = DISABLE_TQDM):
+    def __init__(self, resize_frame: Tuple[int, int] = (360, 640), crops_grid: Tuple[int, int] = (12, 12),
+                 crop_downscale: int = 12, minimum_length_of_scene: int = 7, minimum_gap_between_fades: int = 7,
+                 minimum_length_of_fade: int = 5, minimum_brightness_of_crop: float = 5,
+                 thr_share_of_changed_crops_cut: float = 0.8, thr_difference_crop_cut: float = 0.08,
+                 thr_difference_frame_fade: float = 0.05, disable_tqdm: bool = False):
         """
-        Initiates instance of TransitionDetector. Default values of attributes are from constants.py
+        Initiates instance of TransitionDetector.
 
         :param resize_frame: tuple, 1st element - new height, 2nd - new width
-        :param crop_rows: number of lines in crop grid
-        :param crop_columns: number of columns in crop grid
+        :param crops_grid: 1st element: number of lines in crop grid, 2nd element: number of columns in crop grid
         :param crop_downscale: crop_height = frame_height // crop_downscale, same for width
-        :param thr_share_of_changed_crops_cut: share of changed crops to say that a cut transition is detected, (0, 1]
-        :param thr_difference_crop_cut: the difference between the two frames is compared with the frame values
-                                        multiplied by this parameter to find the cut
-        :param thr_difference_frame_fade: the difference between the two frames is compared with the frame values
-                                          multiplied by this parameter to find the fade
         :param minimum_length_of_scene: minimum distance (in frames) between two cuts
         :param minimum_gap_between_fades: minimum distance (in frames) between two fades
         :param minimum_length_of_fade: minimum duration (in frames) of fadein or fadeout
         :param minimum_brightness_of_crop: minimum brightness of crop to remove black sequence from crops
                                            comparing, [0, 255]
+        :param thr_share_of_changed_crops_cut: share of changed crops to say that a cut transition is detected, (0, 1]
+        :param thr_difference_crop_cut: the difference between the two frames is compared with the frame values
+                                        multiplied by this parameter to find the cut
+        :param thr_difference_frame_fade: the difference between the two frames is compared with the frame values
+                                          multiplied by this parameter to find the fade
         :param disable_tqdm: if True, tqdm will not show progress
         """
         self.resized_frame_height, self.resized_frame_width = resize_frame
-        self.crop_rows = crop_rows
-        self.crop_columns = crop_columns
+        self.crop_rows, self.crop_columns = crops_grid
         self.crop_downscale = crop_downscale
-        self.thr_share_of_changed_crops_cut = thr_share_of_changed_crops_cut
-        self.thr_difference_crop_cut = thr_difference_crop_cut
-        self.thr_difference_frame_fade = thr_difference_frame_fade
         self.minimum_length_of_scene = minimum_length_of_scene
         self.minimum_gap_between_fades = minimum_gap_between_fades
         self.minimum_length_of_fade = minimum_length_of_fade
         self.minimum_brightness_of_crop = minimum_brightness_of_crop
+        self.thr_share_of_changed_crops_cut = thr_share_of_changed_crops_cut
+        self.thr_difference_crop_cut = thr_difference_crop_cut
+        self.thr_difference_frame_fade = thr_difference_frame_fade
         self.disable_tqdm = disable_tqdm
 
         _crop_height = self.resized_frame_height // self.crop_downscale
@@ -207,9 +196,7 @@ class TransitionDetector:
         if min_changed_crops_num == 0:
             return 0
 
-        diff = abs(a - b)
-        pair_min = np.min([a, b], axis=0) * self.thr_difference_crop_cut
-        changed_crops_num = np.greater(diff, pair_min).sum()
+        changed_crops_num = get_changed_crops(a, b, self.thr_difference_crop_cut).sum()
         return int(changed_crops_num >= min_changed_crops_num)
 
     def _process_fade(self, seq: np.ndarray) -> np.ndarray:
@@ -296,3 +283,30 @@ class TransitionDetector:
         frames_crops_mean_values = self._video2crops(video_path, video_slice)
         cut_frames, fadein_frames, fadeout_frames = self.get_transitions(frames_crops_mean_values, video_slice)
         return cut_frames, fadein_frames, fadeout_frames, frames_crops_mean_values
+
+    def visualize(self, video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple[int, int]],
+                  fadeout_frames: List[Tuple[int, int]], frames_crops_mean_values: Optional[np.ndarray] = None,
+                  video_slice: Optional[Tuple[int, int]] = None, output_video_path: Optional[str] = None,
+                  imshow: bool = False):
+        """
+        Interface for `visualize` from visualize.py. Shows frames or saves video with information
+        about transitions on frames. If frames_crops_mean_values is not None, frames will be contained
+        detailed information about all crops of frame.
+
+        :param video_path: path to video file
+        :param cut_frames: np.ndarray with frame indexes where cut is
+        :param fadein_frames: list of tuples, 1st element in the tuple is the start of fading, 2nd is the end of fading
+        :param fadeout_frames: same as `fadein_frames`
+        :param frames_crops_mean_values: sequence with shape (frame_num, CROP_ROWS, CROP_COLUMNS), each element of sequence
+                                         is np.ndarray with crop's mean values. It's used for visualize values of each crop.
+                                         If None, then frames will not be contained detailed information
+        :param video_slice: tuple with start and end IDs for visualize a specific piece of video
+        :param output_video_path: path to video with information on frames, if None, then video will not be created
+        :param imshow: call cv2.imshow if True
+        """
+        visualize(video_path=video_path, cut_frames=cut_frames, fadein_frames=fadein_frames,
+                  fadeout_frames=fadeout_frames, frames_crops_mean_values=frames_crops_mean_values,
+                  crops_grid=(self.crop_rows, self.crop_columns), crop_downscale=self.crop_downscale,
+                  thr_difference_crop_cut=self.thr_difference_crop_cut,
+                  video_slice=video_slice, output_video_path=output_video_path, imshow=imshow,
+                  disable_tqdm=self.disable_tqdm)

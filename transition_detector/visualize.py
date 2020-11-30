@@ -4,9 +4,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from .transition_detector import TransitionDetector
-from .constants import DISABLE_TQDM, CROP_ROWS, CROP_COLUMNS, CROP_DOWNSCALE, THR_DIFFERENCE_CROP_CUT
-from .utils import value_in_interval
+from .utils import value_in_interval, get_changed_crops
 
 
 def add_text(frame: np.ndarray, text: str, coord: Tuple[int, int], size: float,
@@ -28,7 +26,8 @@ def add_text(frame: np.ndarray, text: str, coord: Tuple[int, int], size: float,
 def add_detailed_info(frame: np.ndarray, prev_frame_crops_vals: np.ndarray,
                       curr_frame_crops_vals: np.ndarray, is_cut: bool,
                       crop_dots_x0: List[int], crop_dots_y0: List[int],
-                      crop_dots_x1: List[int], crop_dots_y1: List[int]) -> np.ndarray:
+                      crop_dots_x1: List[int], crop_dots_y1: List[int],
+                      thr_difference_crop_cut: float) -> np.ndarray:
     """
     Adds detailed information about all crops of frame.
 
@@ -40,11 +39,11 @@ def add_detailed_info(frame: np.ndarray, prev_frame_crops_vals: np.ndarray,
     :param crop_dots_y0: top corners coordinates of crops
     :param crop_dots_x1: rights corners coordinates of crops
     :param crop_dots_y1: bottom corners coordinates of crops
+    :param thr_difference_crop_cut: the difference between the two frames is compared with the frame values
+                                    multiplied by this parameter to find the cut
     :return: frame with detailed information on it
     """
-    diff = abs(prev_frame_crops_vals - curr_frame_crops_vals)
-    pair_min = np.min([prev_frame_crops_vals, curr_frame_crops_vals], axis=0) * THR_DIFFERENCE_CROP_CUT
-    changed_crops_num = np.greater(diff, pair_min)
+    changed_crops_num = get_changed_crops(prev_frame_crops_vals, curr_frame_crops_vals, thr_difference_crop_cut)
     for r in range(len(crop_dots_y0)):
         for c in range(len(crop_dots_x0)):
             x0, y0, x1, y1 = crop_dots_x0[c], crop_dots_y0[r], crop_dots_x1[c], crop_dots_y1[r]
@@ -58,9 +57,9 @@ def add_detailed_info(frame: np.ndarray, prev_frame_crops_vals: np.ndarray,
 
 def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple[int, int]],
               fadeout_frames: List[Tuple[int, int]], frames_crops_mean_values: Optional[np.ndarray] = None,
-              video_slice: Optional[Tuple[int, int]] = None,
-              output_video_path: Optional[str] = None, imshow: bool = False,
-              transition_detector: Optional[TransitionDetector] = None, disable_tqdm: bool = DISABLE_TQDM):
+              crops_grid: Optional[Tuple[int, int]] = None, crop_downscale: Optional[int] = None,
+              thr_difference_crop_cut: float = None, video_slice: Optional[Tuple[int, int]] = None,
+              output_video_path: Optional[str] = None, imshow: bool = False, disable_tqdm: bool = False):
     """
     Shows frames or saves video with information about transitions on frames. If frames_crops_mean_values
     is not None, frames will be contained detailed information about all crops of frame.
@@ -72,19 +71,17 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
     :param frames_crops_mean_values: sequence with shape (frame_num, CROP_ROWS, CROP_COLUMNS), each element of sequence
                                      is np.ndarray with crop's mean values. It's used for visualize values of each crop.
                                      If None, then frames will not be contained detailed information
+    :param crops_grid: number of lines in crop grid to visualize crops
+    :param crop_downscale: number of columns in crop grid to visualize crops
+    :param thr_difference_crop_cut: the difference between the two frames is compared with the frame values
+                                    multiplied by this parameter to find the cut
     :param video_slice: tuple with start and end IDs for visualize a specific piece of video
     :param output_video_path: path to video with information on frames, if None, then video will not be created
     :param imshow: call cv2.imshow if True
-    :param transition_detector: if you passed custom attributes when initializing the TransitionDetector then pass an
-                                instance for proper visualization
     :param disable_tqdm: if True, tqdm will not show progress
     """
     if output_video_path is None and not imshow:
         raise AttributeError('If output_video_path is None and imshow is False, then this function will do nothing.')
-
-    crop_rows = transition_detector.crop_rows if transition_detector is not None else CROP_ROWS
-    crop_columns = transition_detector.crop_columns if transition_detector is not None else CROP_COLUMNS
-    crop_downscale = transition_detector.crop_downscale if transition_detector is not None else CROP_DOWNSCALE
 
     cap = cv2.VideoCapture(video_path)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -95,6 +92,11 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
         fps = cap.get(cv2.CAP_PROP_FPS)
         out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
     if frames_crops_mean_values is not None:
+        if crops_grid is None or crop_downscale is None or thr_difference_crop_cut is None:
+            raise AttributeError(
+                'If `frames_crops_mean_values` is passed, then `crops_grid`, `crop_downscale` and '
+                '`thr_difference_crop_cut` must be specified.')
+        crop_rows, crop_columns = crops_grid
         crop_height = height // crop_downscale
         crop_width = width // crop_downscale
         _h_pad = height - crop_height
@@ -118,7 +120,8 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
                     prev_frame_crops_vals = np.array(frames_crops_mean_values[i])
                 curr_frame_crops_vals = np.array(frames_crops_mean_values[i])
                 frame = add_detailed_info(frame, prev_frame_crops_vals, curr_frame_crops_vals, i in cut_frames,
-                                          crop_dots_x0, crop_dots_y0, crop_dots_x1, crop_dots_y1)
+                                          crop_dots_x0, crop_dots_y0, crop_dots_x1, crop_dots_y1,
+                                          thr_difference_crop_cut)
                 prev_frame_crops_vals = curr_frame_crops_vals
             if i + start_frame in cut_frames:
                 scene += 1

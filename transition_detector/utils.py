@@ -62,3 +62,19 @@ def value_in_interval(value: int, intervals: List[Tuple[int, int]]) -> bool:
         if start <= value < end:
             return True
     return False
+
+
+def get_changed_crops(prev_frame_crops_vals, curr_frame_crops_vals, thr_difference_crop_cut):
+    """
+    Compares corresponding crops between frames to find big changes.
+
+    :param prev_frame_crops_vals: mean crop values of previous frame, shape=(crop_rows, crop_columns)
+    :param curr_frame_crops_vals: mean crop values of current frame, shape=(crop_rows, crop_columns)
+    :param thr_difference_crop_cut: the difference between the two frames is compared with the frame values
+                                    multiplied by this parameter to find the cut
+    :return:
+    """
+    diff = abs(prev_frame_crops_vals - curr_frame_crops_vals)
+    pair_min = np.min([prev_frame_crops_vals, curr_frame_crops_vals], axis=0) * thr_difference_crop_cut
+    changed_crops = np.greater(diff, pair_min)
+    return changed_crops

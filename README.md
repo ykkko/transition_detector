@@ -59,24 +59,23 @@ cut_frames, fadein_frames, fadeout_frames = td.get_transitions(frames_values)
 
 ---
 ### Visualization
-Call function `visualize` from `transition_detector/visualize.py` to see results or write them to video file:
+Call `td.visualize` to see results or write them to video file:
 ```python
 from transition_detector import TransitionDetector, visualize
 
 video_path = 'path/to/video'
+video_slice = 500, 1000
+
 td = TransitionDetector()
-cut_frames, fadein_frames, fadeout_frames, frames_crops_mean_values = td.run(video_path)
-visualize(video_path=video_path, cut_frames=cut_frames, 
-          fadein_frames=fadein_frames, fadeout_frames=fadeout_frames, 
-          frames_crops_mean_values=None, video_slice=None,
-          output_video_path='result.mp4', imshow=True, transition_detector=td)
+cut_frames, fadein_frames, fadeout_frames, frames_crops_mean_values = td.run(video_path, video_slice=video_slice)
+td.visualize(video_path=video_path, cut_frames=cut_frames, fadeout_frames=fadein_frames, fadein_frames=fadeout_frames,
+             frames_crops_mean_values=frames_crops_mean_values,
+             video_slice=video_slice, imshow=True, output_video_path='result.mp4')
 ```
 `visualize` shows frames or saves video with information about transitions on frames.
 - If pass `frames_crops_mean_values`, frames will be contained detailed information about all crops of frame.
 - If you processed a video fragment using `video_slice`, define `video_slice` for visualize as well.
 - `output_video_path`: path to video with information on frames. If None, then video will not be created.
 - `imshow`: call cv2.imshow if True.
-- `transition_detector`: if you passed custom attributes when initializing the TransitionDetector then pass an instance 
-for proper visualization.
 
 When visualization is running, press the "q" key to exit.
