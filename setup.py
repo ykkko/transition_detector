@@ -15,6 +15,6 @@ setup(name='transition_detector',
       long_description=long_description,
       long_description_content_type='text/markdown',
       zip_safe=False,
-      install_requires=['numpy==1.18.4',
-                        'opencv-python==4.4.0.44',
-                        'tqdm==4.32.1'])
+      install_requires=['numpy',
+                        'opencv-python',
+                        'tqdm'])
