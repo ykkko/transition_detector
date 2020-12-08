@@ -9,7 +9,6 @@ from .visualize import visualize
 
 
 class TransitionDetector:
-
     def __init__(self, resize_frame: Tuple[int, int] = (360, 640), crops_grid: Tuple[int, int] = (12, 12),
                  crop_downscale: int = 12, minimum_length_of_scene: int = 7, minimum_gap_between_fades: int = 7,
                  minimum_length_of_fade: int = 5, minimum_brightness_of_crop: float = 5,
@@ -287,7 +286,7 @@ class TransitionDetector:
     def visualize(self, video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple[int, int]],
                   fadeout_frames: List[Tuple[int, int]], frames_crops_mean_values: Optional[np.ndarray] = None,
                   video_slice: Optional[Tuple[int, int]] = None, output_video_path: Optional[str] = None,
-                  imshow: bool = False):
+                  imshow: bool = False) -> None:
         """
         Interface for `visualize` from visualize.py. Shows frames or saves video with information
         about transitions on frames. If frames_crops_mean_values is not None, frames will be contained

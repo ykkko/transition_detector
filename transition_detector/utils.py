@@ -64,7 +64,8 @@ def value_in_interval(value: int, intervals: List[Tuple[int, int]]) -> bool:
     return False
 
 
-def get_changed_crops(prev_frame_crops_vals, curr_frame_crops_vals, thr_difference_crop_cut):
+def get_changed_crops(prev_frame_crops_vals: np.ndarray, curr_frame_crops_vals: np.ndarray,
+                      thr_difference_crop_cut: float) -> np.ndarray:
     """
     Compares corresponding crops between frames to find big changes.
 
@@ -72,7 +73,8 @@ def get_changed_crops(prev_frame_crops_vals, curr_frame_crops_vals, thr_differen
     :param curr_frame_crops_vals: mean crop values of current frame, shape=(crop_rows, crop_columns)
     :param thr_difference_crop_cut: the difference between the two frames is compared with the frame values
                                     multiplied by this parameter to find the cut
-    :return:
+    :return: array with shape as `prev_frame_crops_vals.shape`, each element is bool, True if there is a big
+             difference between the two frames
     """
     diff = abs(prev_frame_crops_vals - curr_frame_crops_vals)
     pair_min = np.min([prev_frame_crops_vals, curr_frame_crops_vals], axis=0) * thr_difference_crop_cut

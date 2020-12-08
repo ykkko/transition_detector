@@ -59,7 +59,7 @@ def visualize(video_path: str, cut_frames: np.ndarray, fadein_frames: List[Tuple
               fadeout_frames: List[Tuple[int, int]], frames_crops_mean_values: Optional[np.ndarray] = None,
               crops_grid: Optional[Tuple[int, int]] = None, crop_downscale: Optional[int] = None,
               thr_difference_crop_cut: float = None, video_slice: Optional[Tuple[int, int]] = None,
-              output_video_path: Optional[str] = None, imshow: bool = False, disable_tqdm: bool = False):
+              output_video_path: Optional[str] = None, imshow: bool = False, disable_tqdm: bool = False) -> None:
     """
     Shows frames or saves video with information about transitions on frames. If frames_crops_mean_values
     is not None, frames will be contained detailed information about all crops of frame.
