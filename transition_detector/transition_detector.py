@@ -58,7 +58,7 @@ class TransitionDetector:
                              f'`lines` * `crop_h` ({self.crop_rows * _crop_height})')
         if self.resized_frame_width < self.crop_columns * _crop_width:
             raise ValueError(f'Width of frame ({self.resized_frame_width}) must be >= then '
-                             f'`columns` * `crop_w` ({self.crop_rows * _crop_width})')
+                             f'`columns` * `crop_w` ({self.crop_columns * _crop_width})')
 
     def _make_frame_crops(self, frame: np.ndarray) -> np.ndarray:
         """
